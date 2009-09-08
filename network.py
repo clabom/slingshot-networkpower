@@ -1,6 +1,3 @@
-# Fixes
-# - Keyboard Modes Makros inserted, alt key didn't worked for fine adjustment, fixed
-
 #Todo:
 #exit at welcome screen by pressing cursors
 
@@ -36,6 +33,7 @@
 # pos player 1 und 2
 
 from socket import *
+import pickle
 
 class Network:
     def __init__(self, port, host = None, buf_size = 4096):
@@ -54,7 +52,6 @@ class Network:
 
         self.s.sendto("verbunden", self.addr)
 
-
     def cnct(self):
         data = None
 
@@ -63,6 +60,15 @@ class Network:
             (data, recvaddr) = self.s.recvfrom(self.buf_size)
             print("%s: %s" % (self.addr, data))
 
+
+    def send(self, data):
+        pdata = pickle.dumps(data)
+        n = self.s.sendto(pdata, self.addr)
+        return (True if n == len(pdata) else False)
+
+    def recv(self):
+        (data, recvaddr) = self.s.recvfrom(self.buf_size)
+        return pickle.loads(data)
 
     def __del__(self):
         self.s.close()

@@ -305,14 +305,14 @@ class Game:
 				nn = n / 2
 			else:
 				nn = n
-			for i in range(nn):
+			for i in xrange(nn):
 				self.particlesystem.add(Particle(pos, size))
 
 	def create_planets(self):
 		result = pygame.sprite.RenderPlain()
 
 		n = randint(2, Settings.MAX_PLANETS)
-		for i in range(n):
+		for i in xrange(n):
 			result.add(Planet(result, self.background))
 
 		return result
@@ -413,7 +413,7 @@ class Game:
 				tmp = tmp.convert_alpha()
 				rect = tmp.get_rect()
 				s = (100 - self.show_round) * rect.h / 15
-				tmp = pygame.transform.scale(tmp, (rect.w / rect.h * s, s ))
+				tmp = pygame.transform.scale(tmp, (int(rect.w / rect.h * s), int(s)))
 				rect = tmp.get_rect()
 				rect.center = (399,299)
 				self.screen.blit(tmp, rect.topleft)
@@ -452,7 +452,7 @@ class Game:
 				tmp = tmp.convert_alpha()
 				rect = tmp.get_rect()
 				s = (100 - self.show_round) * rect.h / 25
-				tmp = pygame.transform.scale(tmp, (rect.w / rect.h * s, s ))
+				tmp = pygame.transform.scale(tmp, (int(rect.w / rect.h * s), int(s)))
 				rect = tmp.get_rect()
 				rect.center = (399,299)
 				self.screen.blit(tmp, rect.topleft)
@@ -543,22 +543,37 @@ class Game:
 			self.menu = self.net_menu
 		elif c == "Host a game":
 			self.menu = self.net_host_menu
-			net = Network(3999)
-			net.wait_for_cnct()
+			self.net = Network(3999)
+			self.net.wait_for_cnct()
 
-			if self.settings_changed():
-				self.menu = self.confirm_menu1
-			else:
-				self.menu = self.confirm_menu2
+			self.menu = None
+			self.save_settings()
+			self.game_init()
+
+			#init a round
+			self.net.send(len(self.planetsprites.sprites()))
+
+			for planet in self.planetsprites:
+				print(planet.get_n(), planet.get_radius(), planet.get_mass(), planet.get_pos())
+				self.net.send((planet.get_n(), planet.get_radius(), planet.get_mass(), planet.get_pos()))
+			print(len(self.planetsprites.sprites()))
+
 		elif c == "Connect to a host":
 			self.menu = self.net_client_menu
-			net = Network(3999, "localhost")
-			net.cnct()
+			self.net = Network(3999, "localhost")
+			self.net.cnct()
 
-			if self.settings_changed():
-				self.menu = self.confirm_menu1
-			else:
-				self.menu = self.confirm_menu2
+			planet_count = int(self.net.recv())
+			print(planet_count)
+
+			for i in xrange(planet_count):
+				print(list(self.net.recv()))
+#				result.add(Planet(result, self.background))
+
+			# Start game
+			self.menu = None
+			self.save_settings()
+			self.game_init()
 
 		elif c == "Game options":
 			self.menu = self.mode_menu
@@ -620,7 +635,7 @@ class Game:
 			offset1 = 0
 
 		power_penalty = self.missile.get_score()
-		for i in range(1, 3):
+		for i in xrange(1, 3):
 			if self.players[i].shot:
 				if self.player == 3 - i:
 					message = "Player %d killed self" %(i)
