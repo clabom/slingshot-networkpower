@@ -35,7 +35,7 @@ class Player(pygame.sprite.Sprite):
 		self.init()
 		self.score = 0
 
-	def init(self):
+	def init(self, y_coord = None):
 		self.power = 100
 		self.shot = False
 		self.attempts = 0
@@ -45,26 +45,32 @@ class Player(pygame.sprite.Sprite):
 		if self.player == 1:
 			self.angle = 90
 			self.orig, self.rect = load_image("data/red_ship.png", (0,0,0))
-			self.rect = pygame.Rect(0,0,40,33)
-			self.rect.midleft = (20,randint(100,500))
 			self.color = (209,170,133)
+			self.rect = pygame.Rect(0,0,40,33)
+			if y_coord == None:
+				self.rect.midleft = (20,randint(100,500))
+			else:
+				self.rect.midleft = (20,y_coord)
+			self.d = self.rect.right - self.rect.centerx + 2
+			self.image = self.orig.subsurface(0, 0, 40, 33)
 		elif self.player == 2:
 			self.angle = 270
 			self.orig, self.rect = load_image("data/blue_ship.png", (0,0,0))
-			self.rect = pygame.Rect(0,0,40,33)
-			self.rect.midright = (780,randint(100,500))
 			self.color = (132,152,192)
+			self.rect = pygame.Rect(0,0,40,33)
+			if y_coord == None:
+				self.rect.midright = (780,randint(100,500))
+			else:
+				self.rect.midright = (780,y_coord)
+			self.d = self.rect.centerx - self.rect.left + 3
+			self.image = self.orig.subsurface(0, 0, 40, 33)
 		else:
 			self.orig = None
 
 		self.rel_rot = 0.01
-		if self.player == 1:
-			self.d = self.rect.right - self.rect.centerx + 2
-		else:
-			self.d = self.rect.centerx - self.rect.left + 3
 
-		if self.orig != None:
-			self.image = self.orig.subsurface(0, 0, 40, 33)
+		if Settings.FIXED_POWER:
+			self.power = Settings.POWER
 
 		if Settings.FIXED_POWER:
 			self.power = Settings.POWER
@@ -153,6 +159,13 @@ class Player(pygame.sprite.Sprite):
 				return (self.rect.midright[0] + 1, self.rect.midright[1])
 			if self.player == 2:
 				return (self.rect.midleft[0] - 1, self.rect.midleft[1])
+
+	def get_rect_y_coord(self):
+		if self.player == 1:
+			return self.rect.midright[1]
+		if self.player == 2:
+			return self.rect.midleft[1]
+
 
 	def draw_info(self, screen):
 		txt = Settings.font.render("Angle: %3.2f" %(self.angle), 1, (255,255,255))

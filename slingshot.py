@@ -34,8 +34,9 @@ import math
 import os
 import sys
 import time
-from random import randint
+import thread
 
+from random import randint
 from settings import *
 from general import *
 from player import *
@@ -43,6 +44,7 @@ from planet import *
 from particle import *
 from menu import *
 from network import *
+
 
 class Blackhole(object):
 	softspace = 0
@@ -184,11 +186,13 @@ class Game:
 
 		self.started = False
 
+		self.lock = thread.allocate_lock()
+
 		self.game_init()
 
-	def game_init(self):
-		self.new_game()
-		self.round_init()
+	def game_init(self, planetlist=None, y_coordlist=None, nw_client = False, nw_host = False):
+		self.new_game(nw_client, nw_host)
+		self.round_init(planetlist, y_coordlist)
 		self.bounce_count = 255
 		self.bounce_count_inc = 7
 
@@ -212,7 +216,7 @@ class Game:
 
 		return result
 
-	def new_game(self):
+	def new_game(self, nw_client = False, nw_host = False):
 		Settings.MAX_PLANETS = self.max_planets
 		Settings.BOUNCE = self.bounce
 		Settings.INVISIBLE = self.invisible
@@ -221,14 +225,21 @@ class Game:
 		Settings.RANDOM = self.random
 		Settings.MAX_FLIGHT = self.timeout
 
-		self.player = randint(1,2)
+		self.nw_client = nw_client
+		self.nw_host = nw_host
+
+		if self.nw_play():
+			self.player = 1 # client always begins
+		else:
+			self.player = randint(1,2)
 
 		self.round = 0
 		self.players[1].reset_score()
 		self.players[2].reset_score()
 		self.game_over = False
 
-	def round_init(self):
+
+	def round_init(self, planetlist=None, y_coordlist=None):
 		pygame.key.set_repeat(Settings.KEY_DELAY, Settings.KEY_REPEAT)
 
 		if self.round == Settings.MAX_ROUNDS:
@@ -241,15 +252,19 @@ class Game:
 
 		self.round_over = False
 
-		self.players[1].init()
-		self.players[2].init()
+		if y_coordlist == None:
+			self.players[1].init()
+			self.players[2].init()
+		else:
+			self.players[1].init(y_coordlist[0])
+			self.players[2].init(y_coordlist[1])
 
 		self.missile.flight = 0
 
 		self.firing = 0
 		self.particlesystem = pygame.sprite.RenderPlain()
 
-		self.planetsprites = self.create_planets()
+		self.planetsprites = self.create_planets(planetlist)
 
 		self.trail_screen.fill((0, 0, 0))
 
@@ -259,6 +274,10 @@ class Game:
 			self.player = 1
 		elif self.players[2].score < self.players[1].score:
 			self.player = 2
+
+		print("round init")
+		if self.nw_play() and not self.active_nw_player():
+			thread.start_new_thread(self.thread_job,())
 
 		self.show_round = 100
 		if Settings.INVISIBLE:
@@ -293,6 +312,7 @@ class Game:
 		if self.menu != None:
 			self.menu.reset()
 
+		print ("interessant")
 		if self.menu == None:
 			pygame.key.set_repeat(Settings.KEY_DELAY, Settings.KEY_REPEAT)
 			self.started = True
@@ -308,12 +328,16 @@ class Game:
 			for i in xrange(nn):
 				self.particlesystem.add(Particle(pos, size))
 
-	def create_planets(self):
+	def create_planets(self, planetlist=None):
 		result = pygame.sprite.RenderPlain()
 
-		n = randint(2, Settings.MAX_PLANETS)
-		for i in xrange(n):
-			result.add(Planet(result, self.background))
+		if planetlist == None:
+			n = randint(2, Settings.MAX_PLANETS)
+			for i in xrange(n):
+				result.add(Planet(result, self.background))
+		else:
+			for p in planetlist:
+				result.add(Planet(None, self.background, p[0], p[1], p[2], p[3]))
 
 		return result
 
@@ -548,15 +572,16 @@ class Game:
 
 			self.menu = None
 			self.save_settings()
-			self.game_init()
+			self.game_init(nw_host=True)
 
 			#init a round
 			self.net.send(len(self.planetsprites.sprites()))
 
 			for planet in self.planetsprites:
-				print(planet.get_n(), planet.get_radius(), planet.get_mass(), planet.get_pos())
+#				print(planet.get_n(), planet.get_radius(), planet.get_mass(), planet.get_pos())
 				self.net.send((planet.get_n(), planet.get_radius(), planet.get_mass(), planet.get_pos()))
-			print(len(self.planetsprites.sprites()))
+
+			self.net.send((self.players[1].get_rect_y_coord(), self.players[2].get_rect_y_coord()))
 
 		elif c == "Connect to a host":
 			self.menu = self.net_client_menu
@@ -564,16 +589,22 @@ class Game:
 			self.net.cnct()
 
 			planet_count = int(self.net.recv())
-			print(planet_count)
 
+			planetlist = []
 			for i in xrange(planet_count):
-				print(list(self.net.recv()))
+				planetlist.append(list(self.net.recv()))
 #				result.add(Planet(result, self.background))
+
+			#get player position
+			y_coordlist = self.net.recv()
+
+#			print(planetlist)
 
 			# Start game
 			self.menu = None
 			self.save_settings()
-			self.game_init()
+			self.game_init(planetlist, y_coordlist, nw_client=True)
+
 
 		elif c == "Game options":
 			self.menu = self.mode_menu
@@ -608,6 +639,11 @@ class Game:
 				if self.missile.visible():
 					self.create_particlesystem(self.missile.get_impact_pos(), Settings.n_PARTICLES_10, 10)
 				self.end_shot()
+
+				print("end shot")
+				if self.nw_play() and not self.active_nw_player():
+					thread.start_new_thread(self.thread_job,())
+
 		if not self.menu == None:
 			self.menu_action()
 		if self.players[1].shot or self.players[2].shot:
@@ -618,6 +654,7 @@ class Game:
 			pygame.key.set_repeat()
 			if not self.round_over:
 				self.end_round()
+
 		if self.menu == None:
 			self.started = True
 
@@ -760,21 +797,21 @@ class Game:
 			self.clock.tick(Settings.FPS)
 #			print clock.get_fps()
 
-			for event in pygame.event.get():
+			for event in self.event_check():
 				if event.type == QUIT:
 					self.q = True
 				elif event.type == KEYDOWN:
 					if event.key == K_ESCAPE:
 						self.toggle_menu()
 
-					if self.menu == None:
-						if event.mod == KMOD_CTRL or event.mod == KMOD_LCTRL  or event.mod == KMOD_RCTRL:
+					if self.menu == None and (not self.nw_play() or self.active_nw_player()):
+						if event.mod == KMOD_CTRL or event.mod == KMOD_LCTRL or event.mod == KMOD_RCTRL:
 							p = 1
 							a = 0.25
-						elif event.mod == KMOD_SHIFT or event.mod == KMOD_LSHIFT  or event.mod == KMOD_RSHIFT:
+						elif event.mod == KMOD_SHIFT or event.mod == KMOD_LSHIFT or event.mod == KMOD_RSHIFT:
 							p = 25
 							a = 5
-						elif event.mod == KMOD_ALT or event.mod == KMOD_LALT  or event.mod == KMOD_RALT:
+						elif event.mod == KMOD_ALT or event.mod == KMOD_LALT or event.mod == KMOD_RALT:
 							p = 0.2
 							a = 0.05
 						else:
@@ -790,9 +827,19 @@ class Game:
 								self.change_angle(-a)
 							elif event.key == K_RIGHT:
 								self.change_angle(a)
+
 						if event.key == K_RETURN or event.key == K_SPACE:
+							if self.nw_play():
+								self.net.send((self.players[self.player].get_angle(), self.players[self.player].get_power(), True))
 							self.fire()
-					else:
+						else:
+							if self.nw_play():
+								self.net.send((self.players[self.player].get_angle(), self.players[self.player].get_power(), False))
+
+
+
+
+					elif self.menu != None:
 						if event.key == K_UP:
 							self.menu.up()
 						elif event.key == K_DOWN:
@@ -803,9 +850,10 @@ class Game:
 							self.menu.right()
 						elif event.key == K_RETURN or event.key == K_SPACE:
 							self.menu.select()
-
+			self.lock.acquire()
 			self.update()
 			self.draw()
+			self.lock.release()
 
 		self.save_settings()
 
@@ -904,6 +952,47 @@ class Game:
 		self.player
 		self.players[self.player].change_angle(a)
 		self.players[self.player].change_power(p)
+
+	def nw_play(self):
+		if self.nw_host or self.nw_client:
+			return True
+		else:
+			return False
+
+	def active_nw_player(self):
+		if (self.player == 1 and self.nw_client == True or
+		    self.player == 2 and self.nw_host == True):
+			return True
+		else:
+			return False
+
+	def thread_job(self):
+		print("Thread startet")
+		while 1:
+			player_event = self.net.recv()
+
+			self.lock.acquire()
+			self.players[self.player].change_angle(player_event[0] - self.players[self.player].get_angle())
+			self.players[self.player].change_power(player_event[1] - self.players[self.player].get_power())
+
+			if player_event[2] == True:
+				self.fire()
+
+			self.update()
+			self.draw()
+			self.lock.release()
+
+			if player_event[2] == True:
+				print("Thread beendet")
+				return
+
+	def event_check(self):
+		self.lock.acquire()
+		result=pygame.event.get()
+		self.lock.release()
+		return result
+
+
 def main():
 
 	#sys.stdout = Blackhole()
