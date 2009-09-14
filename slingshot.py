@@ -35,6 +35,7 @@ import os
 import sys
 import time
 import thread
+import inputbox
 
 from random import randint
 from settings import *
@@ -143,9 +144,6 @@ class Game:
 		self.net_menu.add("Host a game")
 		self.net_menu.add("Connect to a host")
 
-		self.net_host_menu = Menu("Waiting for a client")
-		self.net_client_menu = Menu("Connect to a server")
-
 		self.style_menu = Menu("Game style")
 		self.style_menu.add("Back")
 		self.style_menu.addoption("Random", self.random)
@@ -190,9 +188,9 @@ class Game:
 
 		self.game_init()
 
-	def game_init(self, planetlist=None, y_coordlist=None, nw_client = False, nw_host = False):
+	def game_init(self, nw_client = False, nw_host = False):
 		self.new_game(nw_client, nw_host)
-		self.round_init(planetlist, y_coordlist)
+		self.round_init()
 		self.bounce_count = 255
 		self.bounce_count_inc = 7
 
@@ -239,11 +237,11 @@ class Game:
 		self.game_over = False
 
 
-	def round_init(self, planetlist=None, y_coordlist=None):
+	def round_init(self):
 		pygame.key.set_repeat(Settings.KEY_DELAY, Settings.KEY_REPEAT)
 
 		if self.round == Settings.MAX_ROUNDS:
-			self.new_game()
+			self.new_game(self.nw_client, self.nw_host)
 
 		if Settings.RANDOM:
 			Settings.BOUNCE = (randint(0,1) == 1)
@@ -252,10 +250,15 @@ class Game:
 
 		self.round_over = False
 
-		if y_coordlist == None:
+		if not self.nw_client:
 			self.players[1].init()
 			self.players[2].init()
+			planetlist = None
 		else:
+			packet = self.client_round_init()
+			planetlist = packet[0]
+			y_coordlist = packet[1]
+
 			self.players[1].init(y_coordlist[0])
 			self.players[2].init(y_coordlist[1])
 
@@ -275,7 +278,6 @@ class Game:
 		elif self.players[2].score < self.players[1].score:
 			self.player = 2
 
-		print("round init")
 		if self.nw_play() and not self.active_nw_player():
 			thread.start_new_thread(self.thread_job,())
 
@@ -284,6 +286,9 @@ class Game:
 			self.show_planets = 100
 		else:
 			self.show_planets = 0
+
+		if self.nw_host:
+			self.host_round_init()
 
 	def toggle_menu(self):
 		if self.menu == None:
@@ -312,7 +317,6 @@ class Game:
 		if self.menu != None:
 			self.menu.reset()
 
-		print ("interessant")
 		if self.menu == None:
 			pygame.key.set_repeat(Settings.KEY_DELAY, Settings.KEY_REPEAT)
 			self.started = True
@@ -566,46 +570,19 @@ class Game:
 		elif c == "New network game":
 			self.menu = self.net_menu
 		elif c == "Host a game":
-			self.menu = self.net_host_menu
-			self.net = Network(3999)
-			self.net.wait_for_cnct()
+			self.host_game_init()
 
 			self.menu = None
 			self.save_settings()
 			self.game_init(nw_host=True)
-
-			#init a round
-			self.net.send(len(self.planetsprites.sprites()))
-
-			for planet in self.planetsprites:
-#				print(planet.get_n(), planet.get_radius(), planet.get_mass(), planet.get_pos())
-				self.net.send((planet.get_n(), planet.get_radius(), planet.get_mass(), planet.get_pos()))
-
-			self.net.send((self.players[1].get_rect_y_coord(), self.players[2].get_rect_y_coord()))
-
 		elif c == "Connect to a host":
-			self.menu = self.net_client_menu
-			self.net = Network(3999, "localhost")
-			self.net.cnct()
+			hostname = inputbox.ask(self.screen, "Hostname")
+			if hostname != False:
+				self.client_game_init(hostname)
 
-			planet_count = int(self.net.recv())
-
-			planetlist = []
-			for i in xrange(planet_count):
-				planetlist.append(list(self.net.recv()))
-#				result.add(Planet(result, self.background))
-
-			#get player position
-			y_coordlist = self.net.recv()
-
-#			print(planetlist)
-
-			# Start game
-			self.menu = None
-			self.save_settings()
-			self.game_init(planetlist, y_coordlist, nw_client=True)
-
-
+				self.menu = None
+				self.save_settings()
+				self.game_init(nw_client=True)
 		elif c == "Game options":
 			self.menu = self.mode_menu
 		elif c == "Graphics":
@@ -640,7 +617,6 @@ class Game:
 					self.create_particlesystem(self.missile.get_impact_pos(), Settings.n_PARTICLES_10, 10)
 				self.end_shot()
 
-				print("end shot")
 				if self.nw_play() and not self.active_nw_player():
 					thread.start_new_thread(self.thread_job,())
 
@@ -930,29 +906,6 @@ class Game:
 		f.write("Rounds: %d\n" %(self.max_rounds))
 		f.close()
 
-	def pack_nw_data_game(self):
-		self.bounce = Settings.BOUNCE
-		self.fixed_power = Settings.FIXED_POWER
-		self.invisible = Settings.INVISIBLE
-		self.random = Settings.RANDOM
-		self.max_planets = Settings.MAX_PLANETS
-		self.timeout = Settings.MAX_FLIGHT
-		self.max_rounds = Settings.MAX_ROUNDS
-
-	def pack_nw_data_round(self):
-		self.planetsprites.n    # texture
-		self.planetsprites.r    # radius
-		self.planetsprites.mass # mass
-		self.planetsprites.pos  # position
-		self.players[1].rect.midleft # (20,randint(100,500))
-		self.players[2].rect.midleft # (780,randint(100,500))
-		self.round # current round
-
-	def pack_nw_data_shot(self):
-		self.player
-		self.players[self.player].change_angle(a)
-		self.players[self.player].change_power(p)
-
 	def nw_play(self):
 		if self.nw_host or self.nw_client:
 			return True
@@ -967,7 +920,6 @@ class Game:
 			return False
 
 	def thread_job(self):
-		print("Thread startet")
 		while 1:
 			player_event = self.net.recv()
 
@@ -983,7 +935,6 @@ class Game:
 			self.lock.release()
 
 			if player_event[2] == True:
-				print("Thread beendet")
 				return
 
 	def event_check(self):
@@ -992,6 +943,40 @@ class Game:
 		self.lock.release()
 		return result
 
+	def host_game_init(self):
+		self.net = Network(3999)
+		self.net.wait_for_cnct()
+
+		packet = (self.bounce, self.fixed_power, self.invisible, self.random, self.max_planets,	self.timeout, self.max_rounds)
+		self.net.send(packet)
+
+	def client_game_init(self, hostname):
+		self.net = Network(3999, hostname)
+		self.net.cnct()
+
+		packet = self.net.recv()
+
+		self.bounce = packet[0]
+		self.fixed_power = packet[1]
+		self.invisible = packet[2]
+		self.random = packet[3]
+		self.max_planets = packet[4]
+		self.timeout = packet[5]
+		self.max_rounds	= packet[6]
+
+	def host_round_init(self):
+		planetlist = []
+		for planet in self.planetsprites:
+			planetlist.append((planet.get_n(), planet.get_radius(), planet.get_mass(), planet.get_pos()))
+
+		y_coordlist = (self.players[1].get_rect_y_coord(), self.players[2].get_rect_y_coord())
+
+		packet = (planetlist, y_coordlist)
+		self.net.send(packet)
+
+
+	def client_round_init(self):
+		return self.net.recv()
 
 def main():
 

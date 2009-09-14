@@ -58,18 +58,18 @@ class Network:
         while data != "verbunden":
             self.s.sendto("verbinde", self.addr)
             (data, recvaddr) = self.s.recvfrom(self.buf_size)
-#            print("%s: %s" % (self.addr, data))
+#           print("%s: %s" % (self.addr, data))
 
 
     def send(self, data):
         pdata = pickle.dumps(data)
         n = self.s.sendto(pdata, self.addr)
-        print(data)
+#       print(data)
         return (True if n == len(pdata) else False)
 
     def recv(self):
         (data, recvaddr) = self.s.recvfrom(self.buf_size)
-        print(pickle.loads(data))
+#       print(pickle.loads(data))
         return pickle.loads(data)
 
     def __del__(self):
