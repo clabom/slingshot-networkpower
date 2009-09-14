@@ -781,16 +781,16 @@ class Game:
 						self.toggle_menu()
 
 					if self.menu == None and (not self.nw_play() or self.active_nw_player()):
-						if event.mod == KMOD_CTRL or event.mod == KMOD_LCTRL or event.mod == KMOD_RCTRL
-						or event.mod == 4160 or event.mod == 4224:
+						if event.mod == KMOD_CTRL or event.mod == KMOD_LCTRL or event.mod == KMOD_RCTRL \
+							    or event.mod == 4160 or event.mod == 4224:
 							p = 1
 							a = 0.25
-						elif event.mod == KMOD_SHIFT or event.mod == KMOD_LSHIFT or event.mod == KMOD_RSHIFT
-						or event.mod == 4097 or event.mod == 4098:
+						elif event.mod == KMOD_SHIFT or event.mod == KMOD_LSHIFT or event.mod == KMOD_RSHIFT \
+							    or event.mod == 4097 or event.mod == 4098:
 							p = 25
 							a = 5
-						elif event.mod == KMOD_ALT or event.mod == KMOD_LALT or event.mod == KMOD_RALT
-						or event.mod == 4352 or event.mod == 20480 or event.mod == 4608:
+						elif event.mod == KMOD_ALT or event.mod == KMOD_LALT or event.mod == KMOD_RALT \
+							    or event.mod == 4352 or event.mod == 20480 or event.mod == 4608:
 							p = 0.2
 							a = 0.05
 						else:
