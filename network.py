@@ -56,9 +56,9 @@ class Network:
             print(msg)
             return False
 
-        # This check in the endless loop is for terminating the calling thread after some time
         try:
             (self.s, self.addr) = connect_s.accept()
+            self.s.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 262144)
         except:
             connect_s.close()
             return -1
@@ -88,7 +88,7 @@ class Network:
             return False
         else:
             self.s.settimeout(None)
-
+            self.s.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 262144)
 
     def send(self, data):
         pdata = pickle.dumps(data)

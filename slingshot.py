@@ -819,12 +819,14 @@ class Game:
 								if self.net.send((self.players[self.player].get_angle(),
 										  self.players[self.player].get_power(), True)) == False:
 									self.menu = self.net_error_menu
+									del(self.net)
 							self.fire()
 						else:
 							if self.net_play():
 								if self.net.send((self.players[self.player].get_angle(),
 										  self.players[self.player].get_power(), False)) == False:
 									self.menu = self.net_error_menu
+									del(self.net)
 
 					elif self.menu != None:
 						if event.key == K_UP:
@@ -930,6 +932,7 @@ class Game:
 			return False
 
 	def thread_job(self):
+		print("thread startet")
 		while 1:
 			player_event = self.net.recv()
 
@@ -938,6 +941,7 @@ class Game:
 			if not self.net_play():
 				break
 			if player_event == False:
+				del(self.net)
 				self.menu = self.net_error_menu
 				break
 
@@ -953,6 +957,7 @@ class Game:
 			if player_event[2] == True:
 				break
 			self.lock.release()
+		print("thread beendet")
 		self.lock.release()
 
 
@@ -980,12 +985,14 @@ class Game:
 				  self.timeout, self.max_rounds)
 			if self.net.send(packet) == False:
 				self.menu = self.net_error_menu
+				del(self.net)
 				return
 			self.menu = None
 			self.save_settings()
 			self.game_init(net_host=True)
 		else:
 			self.menu = self.net_error_menu
+			del(self.net)
 
 	def client_game_init(self, hostname):
 		self.net = Network(3999)
@@ -994,6 +1001,7 @@ class Game:
 			packet = self.net.recv()
 			if packet == False:
 				self.menu = self.net_error_menu
+				del(self.net)
 				return
 
 			self.bounce = packet[0]
@@ -1009,6 +1017,7 @@ class Game:
 			self.game_init(net_client=True)
 		else:
 			self.menu = self.net_error_menu
+			del(self.net)
 
 	def host_round_init(self):
 		planetlist = []
@@ -1020,11 +1029,13 @@ class Game:
 		packet = (planetlist, y_coordlist)
 		if self.net.send(packet) == False:
 			self.menu = self.net_error_menu
+			del(self.net)
 
 	def client_round_init(self):
 		ret = self.net.recv()
 		if ret == False:
 			self.menu = self.net_error_menu
+			del(self.net)
 		return ret
 
 def main():
