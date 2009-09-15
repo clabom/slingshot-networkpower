@@ -820,6 +820,7 @@ class Game:
 										  self.players[self.player].get_power(), True)) == False:
 									self.menu = self.net_error_menu
 									del(self.net)
+								print(self.players[self.player].get_angle(), self.players[self.player].get_power(), True)
 							self.fire()
 						else:
 							if self.net_play():
@@ -827,6 +828,7 @@ class Game:
 										  self.players[self.player].get_power(), False)) == False:
 									self.menu = self.net_error_menu
 									del(self.net)
+								print(self.players[self.player].get_angle(), self.players[self.player].get_power(), False)
 
 					elif self.menu != None:
 						if event.key == K_UP:
