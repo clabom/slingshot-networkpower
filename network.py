@@ -99,10 +99,10 @@ class Network:
             return False
 
     def recv(self):
-        try socket.error, msg:
+        try:
             data = self.s.recv(self.buf_size)
             return pickle.loads(data)
-        except:
+        except socket.error, msg:
             print(msg)
             return False
 
