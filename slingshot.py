@@ -945,6 +945,7 @@ class Game:
 				self.menu = self.net_error_menu
 				break
 
+			print(player_event[0], player_event[1], player_event[3])
 			self.change_angle(player_event[0] - self.players[self.player].get_angle())
 			self.change_power(player_event[1] - self.players[self.player].get_power())
 
