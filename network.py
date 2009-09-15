@@ -94,8 +94,10 @@ class Network:
         pdata = pickle.dumps(data)
         try:
             n = self.s.send(pdata)
-            return (True if n == len(pdata) else False)
-        except:
+            if n != len(pdata):
+                print("Falsche sendelngge")
+        except socket.error, msg:
+            print(msg)
             return False
 
     def recv(self):
