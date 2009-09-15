@@ -27,7 +27,7 @@
 # version will no longer be supported.
 # This code lacks a good structure and comments.
 
-# Network features added by Marcus Dreier
+# Network features added by Marcus Dreier m-rei@gmx.net
 
 import pygame
 from pygame.locals import *
@@ -178,7 +178,7 @@ class Game:
 		self.particles_menu.add("On")
 		self.particles_menu.add("Off")
 
-		self.rounds_menu = Numeric("Number of rounds", self.max_rounds, 5, 100, 0, "Infinite")
+		self.rounds_menu = Numeric("Number of rounds", self.max_rounds, 1, 100, 0, "Infinite")
 
 		self.help_menu = Help()
 
@@ -819,7 +819,6 @@ class Game:
 								if self.net.send((self.players[self.player].get_angle(),
 										  self.players[self.player].get_power(), True)) == False:
 									self.menu = self.net_error_menu
-
 							self.fire()
 						else:
 							if self.net_play():
@@ -935,13 +934,15 @@ class Game:
 			player_event = self.net.recv()
 
 			self.lock.acquire()
+			# Player want no network play anymore
+			if not self.net_play():
+				break
 			if player_event == False:
 				self.menu = self.net_error_menu
-				self.lock.release()
-				return
+				break
 
-			self.players[self.player].change_angle(player_event[0] - self.players[self.player].get_angle())
-			self.players[self.player].change_power(player_event[1] - self.players[self.player].get_power())
+			self.change_angle(player_event[0] - self.players[self.player].get_angle())
+			self.change_power(player_event[1] - self.players[self.player].get_power())
 
 			if player_event[2] == True:
 				self.fire()
@@ -950,9 +951,10 @@ class Game:
 			self.draw()
 
 			if player_event[2] == True:
-				self.lock.release()
-				return
+				break
 			self.lock.release()
+		self.lock.release()
+
 
 	def event_check(self):
 		self.lock.acquire()
@@ -962,7 +964,6 @@ class Game:
 
 	def host_game_init(self):
 		self.net = Network(3999)
-
 		while 1:
 			# Menu changed - player want no network game anymore
 			if self.menu != self.net_host_menu:
@@ -1025,7 +1026,6 @@ class Game:
 		if ret == False:
 			self.menu = self.net_error_menu
 		return ret
-
 
 def main():
 	#sys.stdout = Blackhole()

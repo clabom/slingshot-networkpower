@@ -73,6 +73,7 @@ class Network:
                     self.s = None
                     continue
                 try:
+                    self.s.settimeout(3)
                     self.s.connect(sa)
                 except socket.error, msg:
                     self.s.close()
@@ -85,6 +86,9 @@ class Network:
         if self.s is None:
             print(msg)
             return False
+        else:
+            self.s.settimeout(None)
+
 
     def send(self, data):
         pdata = pickle.dumps(data)
