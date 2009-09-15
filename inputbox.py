@@ -1,64 +1,70 @@
-# by Timothy Downs, inputbox written for my map editor
-
-# This program needs a little cleaning up
-# It ignores the shift key
-# And, for reasons of my own, this program converts "-" to "_"
-
-# A program to get user input, allowing backspace etc
-# shown in a box in the middle of the screen
-# Called by:
-# import inputbox
-# answer = inputbox.ask(screen, "Your name")
+#    This file is part of Slingshot.
 #
-# Only near the center of the screen is blitted to
+# Slingshot is a two-dimensional strategy game where two players attempt to shoot one
+# another through a section of space populated by planets.  The main feature of the
+# game is that the shots, once fired, are affected by the gravity of the planets.
 
-import pygame, pygame.font, pygame.event, pygame.draw, string
+# Slingshot is Copyright 2007 Jonathan Musther and Bart Mak. It is released under the
+# terms of the GNU General Public License version 2, or later if applicable.
+
+# Slingshot is free software; you can redistribute it and/or modify it under the terms
+# of the GNU General Public License as published by the Free Software Foundation; either
+# version 2 of the License, or any later version.
+
+# Slingshot is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License along with Slingshot;
+# if not, write to
+# the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
+
+
+import pygame, string
+
 from pygame.locals import *
+from settings import *
 
-def get_key():
-  while 1:
-    event = pygame.event.poll()
-    if event.type == KEYDOWN:
-      return event.key
-    else:
-      pass
 
-def display_box(screen, message):
-  "Print a message in a box in the middle of the screen"
-  fontobject = pygame.font.Font(None,18)
-  pygame.draw.rect(screen, (0,0,0),
-                   ((screen.get_width() / 2) - 100,
-                    (screen.get_height() / 2) - 10,
-                    200,20), 0)
-  pygame.draw.rect(screen, (255,255,255),
-                   ((screen.get_width() / 2) - 102,
-                    (screen.get_height() / 2) - 12,
-                    204,24), 1)
-  if len(message) != 0:
-    screen.blit(fontobject.render(message, 1, (255,255,255)),
-                ((screen.get_width() / 2) - 100, (screen.get_height() / 2) - 10))
-  pygame.display.flip()
+class Inputbox:
 
-def ask(screen, question):
-  "ask(screen, question) -> answer"
-  pygame.font.init()
-  current_string = []
-  display_box(screen, question + ": " + string.join(current_string,""))
-  while 1:
-    inkey = get_key()
-    if inkey == K_BACKSPACE:
-      current_string = current_string[0:-1]
-    elif inkey == K_RETURN:
-      break
-    elif inkey == K_ESCAPE:
-      return False
-    elif inkey <= 127 and len(current_string) < 14:
-      current_string.append(chr(inkey))
-    display_box(screen, question + ": " + string.join(current_string,""))
-  return string.join(current_string,"")
+  def __init__(self, screen, question):
+    self.screen = screen
+    self.question = question
+    self.new_str = []
+    self.input_box(question + ": " + string.join(self.new_str,""))
 
-def main():
-  screen = pygame.display.set_mode((320,240))
-  print ask(screen, "Name") + " was entered"
+  def input_box(self, msg):
+    pygame.draw.rect(self.screen, (0,0,0),
+                     ((self.screen.get_width() / 2) - 200,
+                      (self.screen.get_height() / 2) - 20,
+                      400,40), 0)
+    pygame.draw.rect(self.screen, (255,255,255),
+                     ((self.screen.get_width() / 2) - 204,
+                      (self.screen.get_height() / 2) - 24,
+                      408,48), 1)
 
-if __name__ == '__main__': main()
+    if len(msg) != 0:
+      self.screen.blit(Settings.menu_font.render(msg, 1, (255,255,255)),
+                  ((self.screen.get_width() / 2) - 200, (self.screen.get_height() / 2) - 12))
+      pygame.display.flip()
+
+  def ask(self):
+    while 1:
+      key = self.get_key()
+      if key == K_BACKSPACE:
+        self.new_str = self.new_str[0:-1]
+      elif key == K_RETURN:
+        break
+      elif key == K_ESCAPE:
+        return False
+      elif key <= 127 and len(self.new_str) < 19:
+        self.new_str.append(chr(key))
+      self.input_box(self.question + ": " + string.join(self.new_str,""))
+    return string.join(self.new_str,"")
+
+  def get_key(self):
+    while 1:
+      event = pygame.event.poll()
+      if event.type == KEYDOWN:
+        return event.key

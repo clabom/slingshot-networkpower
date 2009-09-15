@@ -27,6 +27,7 @@
 # version will no longer be supported.
 # This code lacks a good structure and comments.
 
+# Network features added by Marcus Dreier
 
 import pygame
 from pygame.locals import *
@@ -35,7 +36,6 @@ import os
 import sys
 import time
 import thread
-import inputbox
 
 from random import randint
 from settings import *
@@ -45,7 +45,7 @@ from planet import *
 from particle import *
 from menu import *
 from network import *
-
+from inputbox import *
 
 class Blackhole(object):
 	softspace = 0
@@ -101,6 +101,9 @@ class Game:
 		self.missile = Missile(self.trail_screen)
 		self.missilesprite = pygame.sprite.RenderPlain((self.missile))
 
+		self.net_client = False
+		self.net_host = False
+
 		self.load_settings()
 
 		#self.fixed_power = Settings.FIXED_POWER
@@ -143,6 +146,12 @@ class Game:
 		self.net_menu.add("Back")
 		self.net_menu.add("Host a game")
 		self.net_menu.add("Connect to a host")
+
+		self.net_host_menu = Menu("Waiting for a client")
+		self.net_host_menu.add("Back")
+
+		self.net_error_menu = Menu("Network error")
+		self.net_error_menu.add("Back")
 
 		self.style_menu = Menu("Game style")
 		self.style_menu.add("Back")
@@ -188,8 +197,8 @@ class Game:
 
 		self.game_init()
 
-	def game_init(self, nw_client = False, nw_host = False):
-		self.new_game(nw_client, nw_host)
+	def game_init(self, net_client = False, net_host = False):
+		self.new_game(net_client, net_host)
 		self.round_init()
 		self.bounce_count = 255
 		self.bounce_count_inc = 7
@@ -214,7 +223,7 @@ class Game:
 
 		return result
 
-	def new_game(self, nw_client = False, nw_host = False):
+	def new_game(self, net_client = False, net_host = False):
 		Settings.MAX_PLANETS = self.max_planets
 		Settings.BOUNCE = self.bounce
 		Settings.INVISIBLE = self.invisible
@@ -223,10 +232,10 @@ class Game:
 		Settings.RANDOM = self.random
 		Settings.MAX_FLIGHT = self.timeout
 
-		self.nw_client = nw_client
-		self.nw_host = nw_host
+		self.net_client = net_client
+		self.net_host = net_host
 
-		if self.nw_play():
+		if self.net_play():
 			self.player = 1 # client always begins
 		else:
 			self.player = randint(1,2)
@@ -236,21 +245,20 @@ class Game:
 		self.players[2].reset_score()
 		self.game_over = False
 
-
 	def round_init(self):
 		pygame.key.set_repeat(Settings.KEY_DELAY, Settings.KEY_REPEAT)
 
 		if self.round == Settings.MAX_ROUNDS:
-			self.new_game(self.nw_client, self.nw_host)
+			self.new_game(self.net_client, self.net_host)
 
-		if Settings.RANDOM:
+		if Settings.RANDOM and self.net_play():
 			Settings.BOUNCE = (randint(0,1) == 1)
 			Settings.FIXED_POWER = (randint(0,1) == 1)
 			Settings.INVISIBLE = (randint(0,1) == 1)
 
 		self.round_over = False
 
-		if not self.nw_client:
+		if not self.net_client:
 			self.players[1].init()
 			self.players[2].init()
 			planetlist = None
@@ -278,7 +286,7 @@ class Game:
 		elif self.players[2].score < self.players[1].score:
 			self.player = 2
 
-		if self.nw_play() and not self.active_nw_player():
+		if self.net_play() and not self.active_net_player():
 			thread.start_new_thread(self.thread_job,())
 
 		self.show_round = 100
@@ -287,7 +295,7 @@ class Game:
 		else:
 			self.show_planets = 0
 
-		if self.nw_host:
+		if self.net_host:
 			self.host_round_init()
 
 	def toggle_menu(self):
@@ -309,6 +317,12 @@ class Game:
 			self.menu = self.mode_menu
 		elif self.menu == self.rounds_menu:
 			self.menu = self.settings_menu
+		elif self.menu == self.net_error_menu:
+			self.menu = self.net_menu
+		elif self.menu == self.net_host_menu:
+			del(self.net)
+			self.menu = self.net_menu
+
 		else:
 			self.menu = self.main_menu
 
@@ -499,7 +513,7 @@ class Game:
 	def update_particles(self):
 		if Settings.PARTICLES:
 			for p in self.particlesystem:
-	#			print p.get_pos()
+				#			print p.get_pos()
 				if p.update(self.planetsprites) == 0 or p.flight < 0:
 					if p.flight >= 0 and p.in_range():
 						if p.get_size() == 10:
@@ -570,19 +584,13 @@ class Game:
 		elif c == "New network game":
 			self.menu = self.net_menu
 		elif c == "Host a game":
-			self.host_game_init()
-
-			self.menu = None
-			self.save_settings()
-			self.game_init(nw_host=True)
+			self.menu = self.net_host_menu
+			thread.start_new_thread(self.host_game_init,())
 		elif c == "Connect to a host":
-			hostname = inputbox.ask(self.screen, "Hostname")
+			in_box = Inputbox(self.screen, "Hostname")
+			hostname = in_box.ask()
 			if hostname != False:
 				self.client_game_init(hostname)
-
-				self.menu = None
-				self.save_settings()
-				self.game_init(nw_client=True)
 		elif c == "Game options":
 			self.menu = self.mode_menu
 		elif c == "Graphics":
@@ -617,7 +625,7 @@ class Game:
 					self.create_particlesystem(self.missile.get_impact_pos(), Settings.n_PARTICLES_10, 10)
 				self.end_shot()
 
-				if self.nw_play() and not self.active_nw_player():
+				if self.net_play() and not self.active_net_player():
 					thread.start_new_thread(self.thread_job,())
 
 		if not self.menu == None:
@@ -767,7 +775,6 @@ class Game:
 
 				pygame.draw.rect(self.end_round_msg, (150,150,150), self.end_round_msg.get_rect(), 1)
 
-
 	def run(self):
 		while not self.q:
 			self.clock.tick(Settings.FPS)
@@ -780,7 +787,7 @@ class Game:
 					if event.key == K_ESCAPE:
 						self.toggle_menu()
 
-					if self.menu == None and (not self.nw_play() or self.active_nw_player()):
+					if self.menu == None and (not self.net_play() or self.active_net_player()):
 						if event.mod == KMOD_CTRL or event.mod == KMOD_LCTRL or event.mod == KMOD_RCTRL \
 							    or event.mod == 4160 or event.mod == 4224:
 							p = 1
@@ -808,15 +815,17 @@ class Game:
 								self.change_angle(a)
 
 						if event.key == K_RETURN or event.key == K_SPACE:
-							if self.nw_play():
-								self.net.send((self.players[self.player].get_angle(), self.players[self.player].get_power(), True))
+							if self.net_play():
+								if self.net.send((self.players[self.player].get_angle(),
+										  self.players[self.player].get_power(), True)) == False:
+									self.menu = self.net_error_menu
+
 							self.fire()
 						else:
-							if self.nw_play():
-								self.net.send((self.players[self.player].get_angle(), self.players[self.player].get_power(), False))
-
-
-
+							if self.net_play():
+								if self.net.send((self.players[self.player].get_angle(),
+										  self.players[self.player].get_power(), False)) == False:
+									self.menu = self.net_error_menu
 
 					elif self.menu != None:
 						if event.key == K_UP:
@@ -835,7 +844,6 @@ class Game:
 			self.lock.release()
 
 		self.save_settings()
-
 
 	def load_settings(self):
 
@@ -909,15 +917,15 @@ class Game:
 		f.write("Rounds: %d\n" %(self.max_rounds))
 		f.close()
 
-	def nw_play(self):
-		if self.nw_host or self.nw_client:
+	def net_play(self):
+		if self.net_host or self.net_client:
 			return True
 		else:
 			return False
 
-	def active_nw_player(self):
-		if (self.player == 1 and self.nw_client == True or
-		    self.player == 2 and self.nw_host == True):
+	def active_net_player(self):
+		if (self.player == 1 and self.net_client == True or
+		    self.player == 2 and self.net_host == True):
 			return True
 		else:
 			return False
@@ -927,6 +935,11 @@ class Game:
 			player_event = self.net.recv()
 
 			self.lock.acquire()
+			if player_event == False:
+				self.menu = self.net_error_menu
+				self.lock.release()
+				return
+
 			self.players[self.player].change_angle(player_event[0] - self.players[self.player].get_angle())
 			self.players[self.player].change_power(player_event[1] - self.players[self.player].get_power())
 
@@ -935,10 +948,11 @@ class Game:
 
 			self.update()
 			self.draw()
-			self.lock.release()
 
 			if player_event[2] == True:
+				self.lock.release()
 				return
+			self.lock.release()
 
 	def event_check(self):
 		self.lock.acquire()
@@ -948,24 +962,52 @@ class Game:
 
 	def host_game_init(self):
 		self.net = Network(3999)
-		self.net.wait_for_cnct()
 
-		packet = (self.bounce, self.fixed_power, self.invisible, self.random, self.max_planets,	self.timeout, self.max_rounds)
-		self.net.send(packet)
+		while 1:
+			# Menu changed - player want no network game anymore
+			if self.menu != self.net_host_menu:
+				return
+
+			ret = self.net.wait_for_cnct()
+
+			# No timeout for accept()
+			if ret != -1:
+				break
+
+		if ret != False:
+			packet = (self.bounce, self.fixed_power, self.invisible, self.random, self.max_planets,
+				  self.timeout, self.max_rounds)
+			if self.net.send(packet) == False:
+				self.menu = self.net_error_menu
+				return
+			self.menu = None
+			self.save_settings()
+			self.game_init(net_host=True)
+		else:
+			self.menu = self.net_error_menu
 
 	def client_game_init(self, hostname):
-		self.net = Network(3999, hostname)
-		self.net.cnct()
+		self.net = Network(3999)
 
-		packet = self.net.recv()
+		if self.net.cnct(hostname) != False:
+			packet = self.net.recv()
+			if packet == False:
+				self.menu = self.net_error_menu
+				return
 
-		self.bounce = packet[0]
-		self.fixed_power = packet[1]
-		self.invisible = packet[2]
-		self.random = packet[3]
-		self.max_planets = packet[4]
-		self.timeout = packet[5]
-		self.max_rounds	= packet[6]
+			self.bounce = packet[0]
+			self.fixed_power = packet[1]
+			self.invisible = packet[2]
+			self.random = packet[3]
+			self.max_planets = packet[4]
+			self.timeout = packet[5]
+			self.max_rounds	= packet[6]
+
+			self.menu = None
+			self.save_settings()
+			self.game_init(net_client=True)
+		else:
+			self.menu = self.net_error_menu
 
 	def host_round_init(self):
 		planetlist = []
@@ -975,14 +1017,17 @@ class Game:
 		y_coordlist = (self.players[1].get_rect_y_coord(), self.players[2].get_rect_y_coord())
 
 		packet = (planetlist, y_coordlist)
-		self.net.send(packet)
-
+		if self.net.send(packet) == False:
+			self.menu = self.net_error_menu
 
 	def client_round_init(self):
-		return self.net.recv()
+		ret = self.net.recv()
+		if ret == False:
+			self.menu = self.net_error_menu
+		return ret
+
 
 def main():
-
 	#sys.stdout = Blackhole()
 	#sys.stderr = Blackhole()
 

@@ -21,6 +21,7 @@
 
 
 import pygame
+
 from settings import *
 from general import *
 
@@ -147,6 +148,12 @@ class Help(Menu):
 	def draw(self):
 		return self.img
 
+	def up(self):
+		pass
+
+	def down(self):
+		pass
+
 class Welcome(Menu):
 
 	def __init__(self):
@@ -159,6 +166,12 @@ class Welcome(Menu):
 
 	def draw(self):
 		return self.img
+
+	def up(self):
+		pass
+
+	def down(self):
+		pass
 
 class Numeric(Menu):
 

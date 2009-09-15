@@ -1,80 +1,108 @@
-#Todo:
-#exit at welcome screen by pressing cursors
+#    This file is part of Slingshot.
+#
+# Slingshot is a two-dimensional strategy game where two players attempt to shoot one
+# another through a section of space populated by planets.  The main feature of the
+# game is that the shots, once fired, are affected by the gravity of the planets.
 
-# Server = Player 1
-# Client = Player 2
+# Slingshot is Copyright 2007 Jonathan Musther and Bart Mak. It is released under the
+# terms of the GNU General Public License version 2, or later if applicable.
 
-# Was wird uebertragen
+# Slingshot is free software; you can redistribute it and/or modify it under the terms
+# of the GNU General Public License as published by the Free Software Foundation; either
+# version 2 of the License, or any later version.
 
-#BEI VERBINDEN
-#game TYPE
-#random
-#fixed power
-#bounce
-#invisible
-#anzahl der runden
-#beretis absovierte runden
-#shot timeout
+# Slingshot is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License along with Slingshot;
+# if not, write to
+# the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
 
-# JEDE tastaturaenderung
-# player:
-# aktueller spieler - deaktiviere eingabe fuer den jeweils anderen
-# punkte fuer beide spieler
-# winkel und speedpfeil fuer aktives raumschiff
-# treffer - NEIN wertet jedes spiel selbst aus
-
-#JEDE RUNDE
-# planet:
-# radius
-# position planet
-# masse
-# evtl. n (textur des planetet)
-# pos player 1 und 2
-
-from socket import *
+import socket
 import pickle
+import sys
 
 class Network:
-    def __init__(self, port, host = None, buf_size = 4096):
-        self.s = socket(AF_INET, SOCK_DGRAM)
-        self.addr = (host, port)
+    def __init__(self, port, buf_size = 4096):
+        self.port = port
         self.buf_size = buf_size
 
-
     def wait_for_cnct(self):
-        data = None
-        self.s.bind(("", self.addr[1]))
+        try:
+            for res in socket.getaddrinfo(None, self.port, socket.AF_UNSPEC,
+                                          socket.SOCK_STREAM, 0, socket.AI_PASSIVE):
+                af, socktype, proto, canonname, sa = res
+                try:
+                     connect_s = socket.socket(af, socktype, proto)
+                except socket.error, msg:
+                     connect_s = None
+                     continue
+                try:
+                    connect_s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    connect_s.bind(sa)
+                    connect_s.listen(1)
+                    connect_s.settimeout(2)
+                except socket.error, msg:
+                     connect_s.close()
+                     connect_s = None
+                     continue
+                break
+        except socket.error, msg:
+            connect_s = None
 
-        while data != "verbinde":
-            (data, self.addr) = self.s.recvfrom(self.buf_size)
-#            print("%s: %s" % (self.addr, data))
+        if connect_s is None:
+            print(msg)
+            return False
 
-        self.s.sendto("verbunden", self.addr)
+        # This check in the endless loop is for terminating the calling thread after some time
+        try:
+            (self.s, self.addr) = connect_s.accept()
+        except:
+            connect_s.close()
+            return -1
 
-    def cnct(self):
-        data = None
+    def cnct(self, hostname):
+        try:
+            for res in socket.getaddrinfo(hostname, self.port, socket.AF_UNSPEC, socket.SOCK_STREAM):
+                af, socktype, proto, canonname, sa = res
+                try:
+                    self.s = socket.socket(af, socktype, proto)
+                except socket.error, msg:
+                    self.s = None
+                    continue
+                try:
+                    self.s.connect(sa)
+                except socket.error, msg:
+                    self.s.close()
+                    self.s = None
+                    continue
+                break
+        except socket.error, msg:
+            self.s = None
 
-        while data != "verbunden":
-            self.s.sendto("verbinde", self.addr)
-            (data, recvaddr) = self.s.recvfrom(self.buf_size)
-#           print("%s: %s" % (self.addr, data))
-
+        if self.s is None:
+            print(msg)
+            return False
 
     def send(self, data):
         pdata = pickle.dumps(data)
-        n = self.s.sendto(pdata, self.addr)
-#       print(data)
-        return (True if n == len(pdata) else False)
+        try:
+            n = self.s.send(pdata)
+            return (True if n == len(pdata) else False)
+        except:
+            return False
 
     def recv(self):
-        (data, recvaddr) = self.s.recvfrom(self.buf_size)
-#       print(pickle.loads(data))
-        return pickle.loads(data)
+        try:
+            data = self.s.recv(self.buf_size)
+            return pickle.loads(data)
+        except:
+            return False
 
     def __del__(self):
-        self.s.close()
-
-
-
-
+        try:
+            self.s.close()
+        except:
+            pass
