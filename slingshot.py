@@ -232,6 +232,9 @@ class Game:
 		Settings.RANDOM = self.random
 		Settings.MAX_FLIGHT = self.timeout
 
+		if self.net_play() and net_client == False and net_host == False:
+			self.net.close()
+
 		self.net_client = net_client
 		self.net_host = net_host
 
@@ -320,7 +323,6 @@ class Game:
 		elif self.menu == self.net_error_menu:
 			self.menu = self.net_menu
 		elif self.menu == self.net_host_menu:
-			del(self.net)
 			self.menu = self.net_menu
 
 		else:
@@ -819,7 +821,7 @@ class Game:
 								if self.net.send((self.players[self.player].get_angle(),
 										  self.players[self.player].get_power(), True)) == False:
 									self.menu = self.net_error_menu
-									del(self.net)
+									self.net.close()
 								print(self.players[self.player].get_angle(), self.players[self.player].get_power(), True)
 							self.fire()
 						else:
@@ -827,7 +829,7 @@ class Game:
 								if self.net.send((self.players[self.player].get_angle(),
 										  self.players[self.player].get_power(), False)) == False:
 									self.menu = self.net_error_menu
-									del(self.net)
+									self.net.close()
 								print(self.players[self.player].get_angle(), self.players[self.player].get_power(), False)
 
 					elif self.menu != None:
@@ -943,11 +945,10 @@ class Game:
 			if not self.net_play():
 				break
 			if player_event == False:
-				del(self.net)
+				self.net.close()
 				self.menu = self.net_error_menu
 				break
 
-			print(player_event[0], player_event[1], player_event[2])
 			self.change_angle(player_event[0] - self.players[self.player].get_angle())
 			self.change_power(player_event[1] - self.players[self.player].get_power())
 
@@ -988,14 +989,14 @@ class Game:
 				  self.timeout, self.max_rounds)
 			if self.net.send(packet) == False:
 				self.menu = self.net_error_menu
-				del(self.net)
+				self.net.close()
 				return
 			self.menu = None
 			self.save_settings()
 			self.game_init(net_host=True)
 		else:
 			self.menu = self.net_error_menu
-			del(self.net)
+			self.net.close()
 
 	def client_game_init(self, hostname):
 		self.net = Network(3999)
@@ -1004,7 +1005,7 @@ class Game:
 			packet = self.net.recv()
 			if packet == False:
 				self.menu = self.net_error_menu
-				del(self.net)
+				self.net.close()
 				return
 
 			self.bounce = packet[0]
@@ -1020,7 +1021,7 @@ class Game:
 			self.game_init(net_client=True)
 		else:
 			self.menu = self.net_error_menu
-			del(self.net)
+			self.net.close()
 
 	def host_round_init(self):
 		planetlist = []
@@ -1032,13 +1033,13 @@ class Game:
 		packet = (planetlist, y_coordlist)
 		if self.net.send(packet) == False:
 			self.menu = self.net_error_menu
-			del(self.net)
+			self.net.close()
 
 	def client_round_init(self):
 		ret = self.net.recv()
 		if ret == False:
 			self.menu = self.net_error_menu
-			del(self.net)
+			self.net.close()
 		return ret
 
 def main():

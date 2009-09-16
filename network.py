@@ -21,8 +21,11 @@
 
 
 import socket
-import pickle
 import sys
+try:
+   import cPickle as pickle
+except:
+   import pickle
 
 class Network:
     def __init__(self, port, buf_size = 4096):
@@ -58,7 +61,9 @@ class Network:
 
         try:
             (self.s, self.addr) = connect_s.accept()
-            self.s.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 262144)
+            self.w_stream = self.s.makefile('wb')
+            self.r_stream = self.s.makefile('rb')
+            connect_s.close()
         except:
             connect_s.close()
             return -1
@@ -88,28 +93,33 @@ class Network:
             return False
         else:
             self.s.settimeout(None)
-            self.s.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 262144)
+            self.w_stream = self.s.makefile('wb')
+            self.r_stream = self.s.makefile('rb')
 
     def send(self, data):
-        pdata = pickle.dumps(data)
+        print(data)
         try:
-            n = self.s.send(pdata)
-            if n != len(pdata):
-                print("Falsche sendelngge")
-        except socket.error, msg:
-            print(msg)
+            pickle.dump(data ,self.w_stream, 1)
+            self.w_stream.flush()
+        except:
             return False
 
     def recv(self):
         try:
-            data = self.s.recv(self.buf_size)
-            return pickle.loads(data)
-        except socket.error, msg:
-            print(msg)
+            data = pickle.load(self.r_stream)
+            print(data)
+            return data
+        except:
             return False
 
-    def __del__(self):
+    def close(self):
         try:
+            self.r_stream.close()
+            self.w_stream.close()
             self.s.close()
-        except:
-            pass
+        except socket.error, msg:
+            print(msg)
+#pass
+
+    def __del__(self):
+       self.close()
