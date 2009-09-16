@@ -232,6 +232,7 @@ class Game:
 		Settings.RANDOM = self.random
 		Settings.MAX_FLIGHT = self.timeout
 
+		# is there an old network game but the new is none
 		if self.net_play() and net_client == False and net_host == False:
 			self.net.close()
 
@@ -515,12 +516,10 @@ class Game:
 	def update_particles(self):
 		if Settings.PARTICLES:
 			for p in self.particlesystem:
-				#			print p.get_pos()
 				if p.update(self.planetsprites) == 0 or p.flight < 0:
 					if p.flight >= 0 and p.in_range():
 						if p.get_size() == 10:
 							self.create_particlesystem(p.get_impact_pos(), Settings.n_PARTICLES_5, 5)
-	#				print "removing: ", p.get_pos()
 					self.particlesystem.remove(p)
 				if p.flight > Settings.MAX_FLIGHT:
 					self.particlesystem.remove(p)
@@ -936,7 +935,6 @@ class Game:
 			return False
 
 	def thread_job(self):
-		print("thread startet")
 		while 1:
 			player_event = self.net.recv()
 
@@ -961,7 +959,6 @@ class Game:
 			if player_event[2] == True:
 				break
 			self.lock.release()
-		print("thread beendet")
 		self.lock.release()
 
 
@@ -972,6 +969,9 @@ class Game:
 		return result
 
 	def host_game_init(self):
+		if self.net_play():
+			self.net.close()
+
 		self.net = Network(3999)
 		while 1:
 			# Menu changed - player want no network game anymore
@@ -999,6 +999,9 @@ class Game:
 			self.net.close()
 
 	def client_game_init(self, hostname):
+		if self.net_play():
+			self.net.close()
+
 		self.net = Network(3999)
 
 		if self.net.cnct(hostname) != False:

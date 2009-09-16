@@ -97,17 +97,17 @@ class Network:
             self.r_stream = self.s.makefile('rb')
 
     def send(self, data):
-        print(data)
-        try:
-            pickle.dump(data ,self.w_stream, 1)
-            self.w_stream.flush()
-        except:
-            return False
+#       print(data)
+       try:
+          pickle.dump(data ,self.w_stream, 1)
+          self.w_stream.flush()
+       except:
+          return False
 
     def recv(self):
         try:
             data = pickle.load(self.r_stream)
-            print(data)
+#            print(data)
             return data
         except:
             return False
@@ -115,11 +115,16 @@ class Network:
     def close(self):
         try:
             self.r_stream.close()
+        except:
+           pass
+        try:
             self.w_stream.close()
-            self.s.close()
-        except socket.error, msg:
-            print(msg)
-#pass
+        except:
+           pass
+        try:
+           self.s.close()
+        except:
+           pass
 
     def __del__(self):
        self.close()
