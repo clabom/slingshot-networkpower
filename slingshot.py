@@ -821,7 +821,6 @@ class Game:
 										  self.players[self.player].get_power(), True)) == False:
 									self.menu = self.net_error_menu
 									self.net.close()
-								print(self.players[self.player].get_angle(), self.players[self.player].get_power(), True)
 							self.fire()
 						else:
 							if self.net_play():
@@ -829,7 +828,6 @@ class Game:
 										  self.players[self.player].get_power(), False)) == False:
 									self.menu = self.net_error_menu
 									self.net.close()
-								print(self.players[self.player].get_angle(), self.players[self.player].get_power(), False)
 
 					elif self.menu != None:
 						if event.key == K_UP:
@@ -1046,15 +1044,15 @@ class Game:
 		return ret
 
 def main():
-	#sys.stdout = Blackhole()
-	#sys.stderr = Blackhole()
+	sys.stdout = Blackhole()
+	sys.stderr = Blackhole()
 
-	# path = os.path.expanduser("~") + "/.slingshot"
-	# if not os.path.exists(path):
-	# 	os.mkdir(path)
-	# path += "/logfile.txt"
-	# sys.stderr = open(path,"w")
-	# sys.stdout = sys.stderr
+	path = os.path.expanduser("~") + "/.slingshot"
+	if not os.path.exists(path):
+		os.mkdir(path)
+	path += "/logfile.txt"
+	sys.stderr = open(path,"w")
+	sys.stdout = sys.stderr
 	game = Game()
 	game.run()
 
