@@ -1044,8 +1044,8 @@ class Game:
 		return ret
 
 def main():
-	sys.stdout = Blackhole()
-	sys.stderr = Blackhole()
+	#sys.stdout = Blackhole()
+	#sys.stderr = Blackhole()
 
 	path = os.path.expanduser("~") + "/.slingshot"
 	if not os.path.exists(path):
