@@ -17,7 +17,7 @@
 
 # You should have received a copy of the GNU General Public License along with Slingshot;
 # if not, write to
-# the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA 
+# the Free Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 
 
 import pygame
@@ -25,26 +25,26 @@ from pygame.locals import *
 from math import sqrt
 
 def load_image(name, colorkey=None):
-    #fullname = os.path.join('data', name)
-	fullname = name
-	try:
-		image = pygame.image.load(fullname)
-	except pygame.error, message:
-		print 'Cannot load image:', fullname
-		raise SystemExit, message
-	image = image.convert_alpha()
-	if colorkey is not None:
-		if colorkey is -1:
-			colorkey = image.get_at((0,0))
-		image.set_colorkey(colorkey, RLEACCEL)
-	return image, image.get_rect()
-		
+	#fullname = os.path.join('data', name)
+		fullname = name
+		try:
+			image = pygame.image.load(fullname)
+		except pygame.error, message:
+			print 'Cannot load image:', fullname
+			raise SystemExit, message
+		image = image.convert_alpha()
+		if colorkey is not None:
+			if colorkey is -1:
+				colorkey = image.get_at((0,0))
+			image.set_colorkey(colorkey, RLEACCEL)
+		return image, image.get_rect()
+
 #def sgn(x):
 #	if x < 0:
 #		return -1
 #	else:
 #		return 1
-	
+
 #def get_intersect(center, r, pos1, pos2):
 #	dx = pos2[0] - pos1[0]
 #	dy = pos2[1] - pos1[1]
@@ -56,7 +56,7 @@ def load_image(name, colorkey=None):
 #	x = center[0] + (D * dy + sgn(dy) * dx * math.sqrt(delta)) / dr**2
 #	y = center[1] + (-D * dx + abs(dy) * math.sqrt(delta)) / dr**2
 #	return (x,y)
-	
+
 def get_intersect(center, r, pos1, pos2):
 	dx = pos2[0] - pos1[0]
 	dy = pos2[1] - pos1[1]

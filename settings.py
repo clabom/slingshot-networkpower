@@ -33,7 +33,7 @@ class Settings:
 	PARTICLE_10_MAXSPEED = 250 # 250 easy, 400-500 wild
 	n_PARTICLES_5 = 20  # number of small particles originating from a big one
 	n_PARTICLES_10 = 30 # number of big particles originating from explosion
-	                   # if both are too high, the game stalls on impact
+		# if both are too high, the game stalls on impact
 
 	ROTATE = True
 	BOUNCE = False

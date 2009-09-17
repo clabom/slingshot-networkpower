@@ -26,7 +26,6 @@ from settings import *
 from general import *
 
 class Menu:
-
 	def __init__(self, name, dim = True):
 		self.reset()
 		self.items = []
