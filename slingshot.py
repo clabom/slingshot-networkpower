@@ -58,9 +58,9 @@ class Game:
 	particle_image_rect = None
 
 	pygame.font.init()
-	Settings.font = pygame.font.Font("C:\Windows\Fonts\DejaVuSansBoldOblique.ttf", 14)
-	Settings.menu_font = pygame.font.Font("C:\Windows\Fonts\DejaVuSansBoldOblique.ttf", Settings.MENU_FONT_SIZE)
-	Settings.round_font = pygame.font.Font("C:\Windows\Fonts\DejaVuSansBoldOblique.ttf", 100)
+	Settings.font = pygame.font.Font("data/FreeSansBold.ttf", 14)
+	Settings.menu_font = pygame.font.Font("data/FreeSansBold.ttf", Settings.MENU_FONT_SIZE)
+	Settings.round_font = pygame.font.Font("data/FreeSansBold.ttf", 100)
 
 	def __init__(self):
 		pygame.display.init()
@@ -933,19 +933,16 @@ class Game:
 			return False
 
 	def thread_job(self):
-		print("threadstart")
 		while 1:
 			player_event = self.net.recv()
 
 			self.lock.acquire()
 			# Player want no network play anymore
 			if not self.net_play():
-				print("nonet")
 				break
 			if player_event == False:
 				self.net.close()
 				self.menu = self.net_error_menu
-				print("playec")
 				break
 
 			self.change_angle(player_event[0] - self.players[self.player].get_angle())
@@ -958,11 +955,10 @@ class Game:
 			self.draw()
 
 			if player_event[2] == True:
-				print("reg")
 				break
 			self.lock.release()
 		self.lock.release()
-		print("threadend")
+
 
 	def event_check(self):
 		self.lock.acquire()
@@ -1051,12 +1047,12 @@ def main():
 	#sys.stdout = Blackhole()
 	#sys.stderr = Blackhole()
 
-	# path = os.path.expanduser("~") + "/.slingshot"
-	# if not os.path.exists(path):
-		# os.mkdir(path)
-	# path += "/logfile.txt"
-	# sys.stderr = open(path,"w")
-	# sys.stdout = sys.stderr
+	path = os.path.expanduser("~") + "/.slingshot"
+	if not os.path.exists(path):
+		os.mkdir(path)
+	path += "/logfile.txt"
+	sys.stderr = open(path,"w")
+	sys.stdout = sys.stderr
 	game = Game()
 	game.run()
 

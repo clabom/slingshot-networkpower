@@ -37,7 +37,7 @@ class Network:
 
 	def wait_for_cnct(self):
 		try:
-			for res in socket.getaddrinfo(None, self.port, socket.AF_INET,
+			for res in socket.getaddrinfo(None, self.port, socket.AF_UNSPEC,
 						      socket.SOCK_STREAM, 0, socket.AI_PASSIVE):
 				af, socktype, proto, canonname, sa = res
 				try:
@@ -49,7 +49,7 @@ class Network:
 					connect_s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 					connect_s.bind(sa)
 					connect_s.listen(1)
-					#connect_s.settimeout(2)
+					connect_s.settimeout(2)
 				except socket.error, msg:
 					connect_s.close()
 					connect_s = None
@@ -66,7 +66,6 @@ class Network:
 			(self.s, self.addr) = connect_s.accept()
 			self.w_stream = self.s.makefile('wb')
 			self.r_stream = self.s.makefile('rb')
-			#connect_s.settimeout(None)
 			connect_s.close()
 		except:
 			connect_s.close()
@@ -74,7 +73,7 @@ class Network:
 
 	def cnct(self, hostname):
 		try:
-			for res in socket.getaddrinfo(hostname, self.port, socket.AF_INET, socket.SOCK_STREAM):
+			for res in socket.getaddrinfo(hostname, self.port, socket.AF_UNSPEC, socket.SOCK_STREAM):
 				af, socktype, proto, canonname, sa = res
 				try:
 					self.s = socket.socket(af, socktype, proto)
@@ -101,7 +100,7 @@ class Network:
 			self.r_stream = self.s.makefile('rb')
 
 	def send(self, data):
-		print(data)
+#       print(data)
 		try:
 			pickle.dump(data ,self.w_stream, 1)
 			self.w_stream.flush()
@@ -111,7 +110,7 @@ class Network:
 	def recv(self):
 		try:
 			data = pickle.load(self.r_stream)
-			print(data)
+#            print(data)
 			return data
 		except:
 			return False
