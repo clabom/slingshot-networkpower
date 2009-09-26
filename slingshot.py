@@ -38,6 +38,7 @@ import time
 import thread
 
 from random import randint
+
 from settings import *
 from general import *
 from player import *
@@ -325,7 +326,6 @@ class Game:
 			self.menu = self.net_menu
 		elif self.menu == self.net_host_menu:
 			self.menu = self.net_menu
-
 		else:
 			self.menu = self.main_menu
 
@@ -516,10 +516,12 @@ class Game:
 	def update_particles(self):
 		if Settings.PARTICLES:
 			for p in self.particlesystem:
+	#			print p.get_pos()
 				if p.update(self.planetsprites) == 0 or p.flight < 0:
 					if p.flight >= 0 and p.in_range():
 						if p.get_size() == 10:
 							self.create_particlesystem(p.get_impact_pos(), Settings.n_PARTICLES_5, 5)
+	#				print "removing: ", p.get_pos()
 					self.particlesystem.remove(p)
 				if p.flight > Settings.MAX_FLIGHT:
 					self.particlesystem.remove(p)
@@ -639,7 +641,6 @@ class Game:
 			pygame.key.set_repeat()
 			if not self.round_over:
 				self.end_round()
-
 		if self.menu == None:
 			self.started = True
 
@@ -776,6 +777,7 @@ class Game:
 
 				pygame.draw.rect(self.end_round_msg, (150,150,150), self.end_round_msg.get_rect(), 1)
 
+
 	def run(self):
 		while not self.q:
 			self.clock.tick(Settings.FPS)
@@ -846,6 +848,7 @@ class Game:
 			self.lock.release()
 
 		self.save_settings()
+
 
 	def load_settings(self):
 
@@ -1044,6 +1047,7 @@ class Game:
 		return ret
 
 def main():
+
 	#sys.stdout = Blackhole()
 	#sys.stderr = Blackhole()
 

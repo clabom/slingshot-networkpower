@@ -166,7 +166,6 @@ class Player(pygame.sprite.Sprite):
 		if self.player == 2:
 			return self.rect.midleft[1]
 
-
 	def draw_info(self, screen):
 		txt = Settings.font.render("Angle: %3.2f" %(self.angle), 1, (255,255,255))
 		rect = txt.get_rect()

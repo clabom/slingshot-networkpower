@@ -81,7 +81,6 @@ class Planet(pygame.sprite.Sprite):
 		self.fade_image.set_alpha(255)
 		self.fade_image.convert()
 
-
 	def get_n(self):
 		return self.n
 

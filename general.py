@@ -25,19 +25,19 @@ from pygame.locals import *
 from math import sqrt
 
 def load_image(name, colorkey=None):
-	#fullname = os.path.join('data', name)
-		fullname = name
-		try:
-			image = pygame.image.load(fullname)
-		except pygame.error, message:
-			print 'Cannot load image:', fullname
-			raise SystemExit, message
-		image = image.convert_alpha()
-		if colorkey is not None:
-			if colorkey is -1:
-				colorkey = image.get_at((0,0))
-			image.set_colorkey(colorkey, RLEACCEL)
-		return image, image.get_rect()
+    #fullname = os.path.join('data', name)
+	fullname = name
+	try:
+		image = pygame.image.load(fullname)
+	except pygame.error, message:
+		print 'Cannot load image:', fullname
+		raise SystemExit, message
+	image = image.convert_alpha()
+	if colorkey is not None:
+		if colorkey is -1:
+			colorkey = image.get_at((0,0))
+		image.set_colorkey(colorkey, RLEACCEL)
+	return image, image.get_rect()
 
 #def sgn(x):
 #	if x < 0:
